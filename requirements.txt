@@ -1,0 +1,9 @@
+# Core dependencies
+streamlit
+PyPDF2
+sentence-transformers
+faiss-cpu
+python-dotenv
+
+# Google Gemini
+google-generativeai
