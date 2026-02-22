@@ -22,7 +22,8 @@ from config.config import (
     GEMINI_VISION_MODEL,
     IMAGE_PROCESSING_MODE,
     TESSERACT_PATH,
-    TESSERACT_LANG
+    TESSERACT_LANG,
+    TESSERACT_CONFIG
 )
 
 
@@ -142,6 +143,98 @@ Türkçe olarak yanıt ver."""
         except Exception as e:
             return f"Gemini Vision error: {str(e)}"
     
+    def preprocess_image_for_ocr(self, image: PILImage.Image) -> PILImage.Image:
+        """
+        Preprocess image to improve OCR accuracy.
+        
+        Args:
+            image: PIL Image object
+            
+        Returns:
+            Preprocessed PIL Image
+        """
+        from PIL import ImageEnhance, ImageFilter, ImageOps
+        import numpy as np
+        
+        try:
+            # Convert to RGB if needed
+            if image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            # Resize if too small (upscale more aggressively for better OCR)
+            min_dimension = 1200  # Increased from 800
+            if min(image.width, image.height) < min_dimension:
+                scale = min_dimension / min(image.width, image.height)
+                new_size = (int(image.width * scale), int(image.height * scale))
+                image = image.resize(new_size, PILImage.Resampling.LANCZOS)
+            
+            # Convert to grayscale
+            image = image.convert('L')
+            
+            # Enhance contrast more aggressively
+            enhancer = ImageEnhance.Contrast(image)
+            image = enhancer.enhance(2.0)  # Increased from 1.5
+            
+            # Enhance sharpness
+            enhancer = ImageEnhance.Sharpness(image)
+            image = enhancer.enhance(1.5)  # Increased from 1.3
+            
+            # Apply slight denoising
+            image = image.filter(ImageFilter.MedianFilter(size=3))
+            
+            # Auto-contrast for better text visibility
+            image = ImageOps.autocontrast(image)
+            
+            return image
+            
+        except Exception as e:
+            print(f"Warning: Image preprocessing failed: {e}")
+            return image
+    
+    def clean_ocr_output(self, text: str) -> str:
+        """
+        Clean OCR output by removing noise and special characters from diagrams.
+        
+        Args:
+            text: Raw OCR text
+            
+        Returns:
+            Cleaned text
+        """
+        import re
+        
+        # Split into lines
+        lines = text.split('\n')
+        cleaned_lines = []
+        
+        for line in lines:
+            # Remove leading/trailing whitespace
+            line = line.strip()
+            
+            # Skip empty lines
+            if not line:
+                continue
+            
+            # Skip lines that are mostly special characters/symbols
+            # Keep lines with at least 50% alphanumeric characters
+            alnum_count = sum(c.isalnum() or c.isspace() for c in line)
+            if len(line) > 0 and (alnum_count / len(line)) < 0.5:
+                continue
+            
+            # Remove common diagram artifacts
+            line = re.sub(r'[>|<\-_=\[\]{}()]+', ' ', line)
+            
+            # Remove extra spaces
+            line = re.sub(r'\s+', ' ', line).strip()
+            
+            # Skip very short lines (likely noise)
+            if len(line) < 3:
+                continue
+            
+            cleaned_lines.append(line)
+        
+        return '\n'.join(cleaned_lines)
+    
     def process_image_with_ocr(self, image: PILImage.Image) -> str:
         """
         Process image using Tesseract OCR.
@@ -161,13 +254,30 @@ Türkçe olarak yanıt ver."""
             # Ensure Tesseract path is set from config
             pytesseract.pytesseract.tesseract_cmd = TESSERACT_PATH
             
-            # Perform OCR with configured languages
-            text = pytesseract.image_to_string(image, lang=TESSERACT_LANG)
+            # Preprocess image for better OCR
+            processed_image = self.preprocess_image_for_ocr(image)
             
-            if text.strip():
-                return f"[Görsel içeriği - OCR ile çıkarıldı]\n{text.strip()}"
+            # Perform OCR with configured languages and settings
+            text = pytesseract.image_to_string(
+                processed_image, 
+                lang=TESSERACT_LANG,
+                config=TESSERACT_CONFIG
+            )
+            
+            # Clean OCR output
+            cleaned_text = self.clean_ocr_output(text)
+            
+            if cleaned_text.strip():
+                # Create a more detailed description
+                result = f"""[GÖRSEL İÇERİĞİ - OCR ile çıkarıldı]
+
+Görselde tespit edilen metin:
+{cleaned_text.strip()}
+
+[Bu bilgiler görsel üzerindeki yazılardan okunmuştur]"""
+                return result
             else:
-                return "[Görselde metin bulunamadı]"
+                return "[Görselde metin bulunamadı veya okunamadı]"
                 
         except Exception as e:
             return f"OCR error: {str(e)}"
@@ -225,7 +335,8 @@ Türkçe olarak yanıt ver."""
         # Process each image
         processed_documents = []
         for idx, img_data in enumerate(images):
-            print(f"  Processing image {idx + 1}/{len(images)}...", end=" ")
+            page_num = img_data['page_num']
+            print(f"  [{idx + 1}/{len(images)}] Page {page_num} - {img_data['width']}x{img_data['height']} - ", end="")
             
             result = self.process_image(
                 img_data['image'],
@@ -237,7 +348,10 @@ Türkçe olarak yanıt ver."""
                 }
             )
             
+            # Show preview of extracted text
+            content_preview = result['content'][:100].replace('\n', ' ')
+            print(f"✓ ({len(result['content'])} chars: {content_preview}...)")
+            
             processed_documents.append(result)
-            print("✓")
         
         return processed_documents
