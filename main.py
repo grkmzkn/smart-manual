@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Command-line interface for Smart Manual application.
 Terminal-based interface for testing PDF Q&A functionality.
@@ -9,7 +10,7 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent))
 
-from config.config import VECTORDB_DIR, UPLOAD_DIR, TOP_K_RESULTS, USE_LLM
+from config.config import VECTORDB_DIR, UPLOAD_DIR, TOP_K_RESULTS
 from src.pdf_processor import PDFProcessor
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
@@ -92,20 +93,19 @@ def process_pdf_file(pdf_path: str, pdf_processor, embedding_model, vector_store
     print(f"📊 Total documents in database: {vector_store.get_document_count()}\n")
 
 
-def ask_question(question: str, qa_engine, use_llm: bool = USE_LLM):
+def ask_question(question: str, qa_engine):
     """
     Ask a question and get an answer.
     
     Args:
         question: Question text
         qa_engine: QAEngine instance
-        use_llm: Whether to use LLM for answer generation
     """
     print(f"\n❓ Question: {question}")
     print("🔍 Searching for relevant information...\n")
     
     # Get answer
-    result = qa_engine.answer_question(question, k=TOP_K_RESULTS, use_llm=use_llm)
+    result = qa_engine.answer_question(question, k=TOP_K_RESULTS)
     
     # Display answer
     print("=" * 80)
@@ -118,7 +118,9 @@ def ask_question(question: str, qa_engine, use_llm: bool = USE_LLM):
     if result['sources']:
         print("\n📚 SOURCES:")
         for i, source in enumerate(result['sources'], 1):
-            print(f"  {i}. {source['source']} (Chunk {source['chunk_id'] + 1}, Score: {source['score']:.2f})")
+            page_info = f"Page {source['page_number']}" if source.get('page_number') != 'N/A' else "Page N/A"
+            content_type = source.get('content_type', 'text').upper()
+            print(f"  {i}. [{content_type}] {source['source']} - {page_info} (Chunk {source['chunk_id'] + 1}, Score: {source['score']:.2f})")
     
     print("\n")
 
@@ -133,10 +135,11 @@ def main_menu():
     print("  2. Ask a question")
     print("  3. Show database stats")
     print("  4. Clear database")
-    print("  5. Exit")
+    print("  5. View image chunks (Debug)")
+    print("  6. Exit")
     print("=" * 80)
     
-    choice = input("\nEnter your choice (1-5): ").strip()
+    choice = input("\nEnter your choice (1-6): ").strip()
     return choice
 
 
@@ -158,6 +161,66 @@ def clear_database(vector_store):
         print("✅ Database cleared successfully!\n")
     else:
         print("❌ Operation cancelled.\n")
+
+
+def view_image_chunks(vector_store):
+    """View all image chunks in the database for debugging."""
+    print("\n" + "=" * 80)
+    print("🖼️  IMAGE CHUNKS IN DATABASE")
+    print("=" * 80)
+    
+    if vector_store.get_document_count() == 0:
+        print("\n⚠️  Database is empty!\n")
+        return
+    
+    # Filter page number if needed
+    page_filter = input("\nFilter by page number (press Enter for all pages): ").strip()
+    
+    image_chunks = []
+    for i, (doc, metadata) in enumerate(zip(vector_store.documents, vector_store.metadata)):
+        if metadata.get('content_type') == 'image':
+            # Apply page filter if specified
+            if page_filter and str(metadata.get('page_number')) != page_filter:
+                continue
+            
+            image_chunks.append({
+                'index': i,
+                'content': doc,
+                'metadata': metadata
+            })
+    
+    if not image_chunks:
+        if page_filter:
+            print(f"\n⚠️  No image chunks found on page {page_filter}!\n")
+        else:
+            print("\n⚠️  No image chunks found in database!\n")
+        return
+    
+    print(f"\nFound {len(image_chunks)} image chunk(s):\n")
+    
+    for i, chunk in enumerate(image_chunks, 1):
+        meta = chunk['metadata']
+        print("=" * 80)
+        print(f"IMAGE CHUNK #{i}")
+        print("-" * 80)
+        print(f"Source: {meta.get('source', 'Unknown')}")
+        print(f"Page: {meta.get('page_number', 'N/A')}")
+        print(f"Chunk ID: {meta.get('chunk_id', 'N/A')}")
+        print(f"Dimensions: {meta.get('dimensions', 'N/A')}")
+        print(f"Format: {meta.get('format', 'N/A')}")
+        print("-" * 80)
+        print("EXTRACTED TEXT:")
+        print(chunk['content'])
+        print("=" * 80)
+        print()
+        
+        # Ask if user wants to continue after each chunk
+        if i < len(image_chunks):
+            cont = input("Press Enter to see next image chunk, or 'q' to quit: ").strip().lower()
+            if cont == 'q':
+                break
+    
+    print(f"\n✅ Displayed {min(i, len(image_chunks))} of {len(image_chunks)} image chunks.\n")
 
 
 def main():
@@ -182,9 +245,7 @@ def main():
             
             question = input("\nEnter your question: ").strip()
             if question:
-                use_llm_choice = input("Use LLM for answer? (y/n, default=y): ").strip().lower()
-                use_llm = use_llm_choice != 'n'
-                ask_question(question, qa_engine, use_llm)
+                ask_question(question, qa_engine)
             
         elif choice == '3':
             # Show stats
@@ -195,6 +256,10 @@ def main():
             clear_database(vector_store)
             
         elif choice == '5':
+            # View image chunks
+            view_image_chunks(vector_store)
+            
+        elif choice == '6':
             # Exit
             print("\n👋 Goodbye!\n")
             break
