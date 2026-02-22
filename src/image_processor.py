@@ -193,13 +193,13 @@ Türkçe olarak yanıt ver."""
     
     def clean_ocr_output(self, text: str) -> str:
         """
-        Clean OCR output by removing noise and special characters from diagrams.
+        Clean OCR output by removing noise, fixing line breaks, and merging fragmented lines.
         
         Args:
             text: Raw OCR text
             
         Returns:
-            Cleaned text
+            Cleaned and properly formatted text
         """
         import re
         
@@ -233,7 +233,48 @@ Türkçe olarak yanıt ver."""
             
             cleaned_lines.append(line)
         
-        return '\n'.join(cleaned_lines)
+        # Merge fragmented lines (satır kaymalarını düzelt)
+        merged_lines = []
+        i = 0
+        while i < len(cleaned_lines):
+            current_line = cleaned_lines[i]
+            
+            # Liste öğesi mi kontrol et (numaralı veya madde işaretli)
+            is_list_item = re.match(r'^\s*[\d\u2022\u25CF\u25E6\-\*]\s*[\.)]?\s+', current_line)
+            
+            # Başlık mı kontrol et (kısa ve büyük harfle başlayan)
+            is_heading = (len(current_line) < 50 and 
+                         current_line[0].isupper() and 
+                         not current_line.endswith(('.', ':', ';', ',', ')', '!')))
+            
+            # Cümle sonu noktalama işaretleri
+            ends_with_punctuation = current_line.endswith(('.', '!', '?', ':', ';', ')'))
+            
+            # Bir sonraki satırı birleştirmeyi dene
+            while i + 1 < len(cleaned_lines):
+                next_line = cleaned_lines[i + 1]
+                
+                # Sonraki satır liste öğesi mi?
+                next_is_list_item = re.match(r'^\s*[\d\u2022\u25CF\u25E6\-\*]\s*[\.)]?\s+', next_line)
+                
+                # Mevcut satır noktalama ile bitiyorsa veya liste öğesi ise birleştirme
+                if ends_with_punctuation or is_list_item or next_is_list_item or is_heading:
+                    break
+                
+                # Küçük harfle başlıyorsa veya cümle devamıysa birleştir
+                if (next_line and 
+                    (next_line[0].islower() or 
+                     current_line[-1] in (',', 've', 'veya', 'ile', 'için'))):
+                    current_line += ' ' + next_line
+                    i += 1
+                    ends_with_punctuation = current_line.endswith(('.', '!', '?', ':', ';', ')'))
+                else:
+                    break
+            
+            merged_lines.append(current_line)
+            i += 1
+        
+        return '\n\n'.join(merged_lines)
     
     def process_image_with_ocr(self, image: PILImage.Image) -> str:
         """
