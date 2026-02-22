@@ -73,6 +73,49 @@ class PDFProcessor:
         except Exception as e:
             raise Exception(f"PDF reading error: {str(e)}")
     
+    def extract_text_by_pages(self, pdf_path: str) -> List[Dict[str, any]]:
+        """
+        Extract text content from PDF file page by page.
+        
+        Args:
+            pdf_path: Path to PDF file
+            
+        Returns:
+            List of dictionaries with page text and page numbers
+            
+        Raises:
+            Exception: If PDF reading fails
+        """
+        try:
+            pages_data = []
+            
+            with pdfplumber.open(pdf_path) as pdf:
+                for page_num, page in enumerate(pdf.pages, start=1):
+                    page_text = ""
+                    
+                    # Extract text
+                    text = page.extract_text()
+                    if text:
+                        page_text += text + "\n\n"
+                    
+                    # Extract tables if enabled
+                    if EXTRACT_TABLES:
+                        tables = page.extract_tables()
+                        for table in tables:
+                            table_text = self._table_to_text(table)
+                            page_text += f"\n[TABLE]\n{table_text}\n[/TABLE]\n\n"
+                    
+                    if page_text.strip():
+                        pages_data.append({
+                            'text': clean_text(page_text),
+                            'page_num': page_num
+                        })
+            
+            return pages_data
+            
+        except Exception as e:
+            raise Exception(f"PDF reading error: {str(e)}")
+    
     def _table_to_text(self, table: List[List]) -> str:
         """
         Convert table to readable text format.
@@ -136,35 +179,64 @@ class PDFProcessor:
         filename = os.path.basename(pdf_path)
         all_documents = []
         
-        # Extract and process text
-        text = self.extract_text_from_pdf(pdf_path)
-        chunks = self.split_text_into_chunks(text)
+        # Extract text page by page
+        pages_data = self.extract_text_by_pages(pdf_path)
         
-        # Create text documents with metadata
-        for i, chunk in enumerate(chunks):
-            all_documents.append({
-                'content': chunk,
-                'type': 'text',
-                'metadata': {
-                    'source': filename,
-                    'chunk_id': i,
-                    'total_chunks': len(chunks),
-                    'content_type': 'text'
-                }
-            })
+        # Process each page and create chunks
+        chunk_id = 0
+        for page_data in pages_data:
+            page_chunks = self.split_text_into_chunks(page_data['text'])
+            
+            for chunk in page_chunks:
+                all_documents.append({
+                    'content': chunk,
+                    'type': 'text',
+                    'metadata': {
+                        'source': filename,
+                        'page_number': page_data['page_num'],
+                        'chunk_id': chunk_id,
+                        'content_type': 'text'
+                    }
+                })
+                chunk_id += 1
         
         # Process images if enabled
         if self.process_images and self.image_processor:
             print(f"\n🖼️  Processing images from {filename}...")
             image_documents = self.image_processor.process_pdf_images(pdf_path)
             
-            # Add image documents with adjusted metadata
+            # Create page content map for context enrichment
+            page_content_map = {page['page_num']: page['text'] for page in pages_data}
+            
+            # Add image documents with context from their page
             for i, img_doc in enumerate(image_documents):
+                page_num = img_doc['metadata'].get('page_num', 0)
+                
+                # Get page context (first 300 chars as header/title context)
+                page_context = ""
+                if page_num in page_content_map:
+                    page_text = page_content_map[page_num]
+                    # Extract first part as context (likely contains title/heading)
+                    page_context = page_text[:300].strip()
+                    if len(page_text) > 300:
+                        page_context += "..."
+                
+                # Enrich image content with page context
+                if page_context:
+                    original_content = img_doc['content']
+                    enriched_content = f"""[SAYFA BAĞLAMI - Sayfa {page_num}]
+{page_context}
+
+{original_content}"""
+                    img_doc['content'] = enriched_content
+                
+                # Update metadata
                 img_doc['metadata']['source'] = filename
-                img_doc['metadata']['chunk_id'] = len(chunks) + i
-                img_doc['metadata']['total_chunks'] = len(chunks) + len(image_documents)
+                img_doc['metadata']['page_number'] = page_num
+                img_doc['metadata']['chunk_id'] = chunk_id
                 img_doc['metadata']['content_type'] = 'image'
                 all_documents.append(img_doc)
+                chunk_id += 1
         
         self.documents = all_documents
         return all_documents
