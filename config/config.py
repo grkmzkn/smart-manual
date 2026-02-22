@@ -33,10 +33,22 @@ CHUNK_OVERLAP = 200  # Overlap between chunks
 # Vector search settings
 TOP_K_RESULTS = 3  # Number of relevant chunks to retrieve
 
-# Google Gemini settings (optional)
+# Google Gemini settings (required for Q&A)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-USE_LLM = bool(GEMINI_API_KEY)  # Enable LLM if API key is available
-GEMINI_MODEL = "gemini-pro"  # Gemini model to use
+GEMINI_MODEL = "gemini-2.5-flash"  # Latest Gemini 2.0 model - fast and efficient
+GEMINI_VISION_MODEL = "gemini-2.5-flash"  # Gemini 2.0 Vision for images
+
+# Image processing settings
+# Options: "gemini" (Gemini Vision API - more accurate but uses API credits)
+#          "ocr" (Tesseract OCR - free but requires installation)
+#          "none" (skip images - fastest, text-only)
+IMAGE_PROCESSING_MODE = "ocr"  # Change this to "gemini" or "none" as needed
+PROCESS_IMAGES = IMAGE_PROCESSING_MODE != "none"  # Whether to process images at all
+EXTRACT_TABLES = True  # Extract tables from PDFs using pdfplumber
+
+# Tesseract OCR settings
+TESSERACT_PATH = r"C:\Program Files\Tesseract-OCR\tesseract.exe"  # Tesseract executable path
+TESSERACT_LANG = "tur+eng"  # OCR languages (Turkish + English)
 
 # Streamlit UI settings
 PAGE_TITLE = "Smart Manual - Akıllı Kullanım Talimatı Asistanı"
