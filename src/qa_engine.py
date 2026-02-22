@@ -10,7 +10,7 @@ import google.generativeai as genai
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from config.config import GEMINI_API_KEY, GEMINI_MODEL, USE_LLM
+from config.config import GEMINI_API_KEY, GEMINI_MODEL
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
 
@@ -75,8 +75,7 @@ class QAEngine:
     def generate_answer(
         self, 
         question: str, 
-        context_docs: List[Dict],
-        use_llm: bool = True
+        context_docs: List[Dict]
     ) -> str:
         """
         Generate answer based on question and retrieved context.
@@ -84,7 +83,6 @@ class QAEngine:
         Args:
             question: User question
             context_docs: Retrieved relevant documents
-            use_llm: Whether to use LLM for answer generation
             
         Returns:
             Generated answer string
@@ -95,10 +93,12 @@ class QAEngine:
         # Combine context from documents
         context_text = "\n\n".join([doc['content'] for doc in context_docs])
         
-        if use_llm and self.model:
-            # Generate answer using Gemini
-            try:
-                prompt = f"""Sen bir kullanım kılavuzu asistanısın. Verilen belge içeriğine dayanarak kullanıcının sorusunu Türkçe olarak net ve anlaşılır bir şekilde cevapla.
+        # Generate answer using Gemini
+        if not self.model:
+            return "⚠️ Gemini API yapılandırılmamış. Lütfen .env dosyasına GEMINI_API_KEY ekleyin."
+        
+        try:
+            prompt = f"""Sen bir kullanım kılavuzu asistanısın. Verilen belge içeriğine dayanarak kullanıcının sorusunu Türkçe olarak net ve anlaşılır bir şekilde cevapla.
 
 Belgeler:
 {context_text}
@@ -107,20 +107,16 @@ Kullanıcı Sorusu: {question}
 
 Lütfen sadece verilen belgelerden yararlanarak soruyu cevapla. Eğer belgede cevap yoksa, bunu belirt."""
 
-                response = self.model.generate_content(prompt)
-                return response.text
-                
-            except Exception as e:
-                return f"LLM hatası: {str(e)}\n\nBulunan ilgili metin:\n{context_text[:500]}..."
-        else:
-            # Simple context return (without LLM)
-            return f"İlgili belgelerden bulunan bilgiler:\n\n{context_text}"
+            response = self.model.generate_content(prompt)
+            return response.text
+            
+        except Exception as e:
+            return f"LLM hatası: {str(e)}\n\nBulunan ilgili metin:\n{context_text[:500]}..."
     
     def answer_question(
         self, 
         question: str, 
-        k: int = 3,
-        use_llm: bool = True
+        k: int = 3
     ) -> Dict:
         """
         Complete QA pipeline: retrieve context and generate answer.
@@ -128,7 +124,6 @@ Lütfen sadece verilen belgelerden yararlanarak soruyu cevapla. Eğer belgede ce
         Args:
             question: User question
             k: Number of documents to retrieve
-            use_llm: Whether to use LLM
             
         Returns:
             Dictionary with answer and source information
@@ -137,7 +132,7 @@ Lütfen sadece verilen belgelerden yararlanarak soruyu cevapla. Eğer belgede ce
         context_docs = self.retrieve_context(question, k=k)
         
         # Generate answer
-        answer = self.generate_answer(question, context_docs, use_llm=use_llm)
+        answer = self.generate_answer(question, context_docs)
         
         # Prepare response
         return {
