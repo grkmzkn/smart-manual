@@ -1,9 +1,17 @@
 # Core dependencies
 streamlit
-PyPDF2
 sentence-transformers
 faiss-cpu
 python-dotenv
+
+# PDF Processing
+pdfplumber
+PyMuPDF  # fitz for image extraction from PDFs
+
+# Image Processing
+pdf2image
+pytesseract
+Pillow
 
 # Google Gemini
 google-generativeai
