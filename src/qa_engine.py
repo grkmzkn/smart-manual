@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Question-Answering engine module for Smart Manual application.
 RAG-based answer generation using retrieved context and LLM.
@@ -123,12 +124,19 @@ class QAEngine:
 - Görsellerde ve tablolarda yer alan bilgiler ÇOK ÖNEMLİ - bunları atlamadan kullan
 - Soruya tam ve eksiksiz cevap ver
 
+FORMATLAMA KURALLARI:
+- Cevabı düzgün paragraflar halinde yaz
+- Liste öğelerini madde işareti (-) veya numara ile göster
+- Her maddeyi yeni satıra yaz
+- Gereksiz satır sonları KULLANMA
+- Paragraflar arası boşluk için çift satır sonu kullan
+
 BELGELER:
 {context_text}
 
 KULLANICI SORUSU: {question}
 
-CEVAP (sadece belgelerdeki bilgilere dayanarak, eksiksiz ve detaylı):"""
+CEVAP (sadece belgelerdeki bilgilere dayanarak, düzenli formatta):"""
 
             response = self.model.generate_content(prompt)
             return response.text
