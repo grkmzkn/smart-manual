@@ -10,7 +10,7 @@ import google.generativeai as genai
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from config.config import GEMINI_API_KEY, GEMINI_MODEL
+from config.config import GEMINI_API_KEY, GEMINI_MODEL, MAX_CONTEXT_LENGTH
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
 
@@ -90,22 +90,45 @@ class QAEngine:
         if not context_docs:
             return "Üzgünüm, yüklenen belgelerde bu soruyla ilgili bilgi bulamadım."
         
-        # Combine context from documents
-        context_text = "\n\n".join([doc['content'] for doc in context_docs])
+        # Combine context from documents with enhanced formatting
+        context_parts = []
+        for i, doc in enumerate(context_docs, 1):
+            content_type = doc['metadata'].get('content_type', 'text').upper()
+            page_num = doc['metadata'].get('page_number', 'N/A')
+            
+            # Format each chunk with metadata
+            if content_type == 'IMAGE':
+                header = f"--- KAYNAK {i}: [{content_type}] Sayfa {page_num} (GÖRSELDEN ÇIKARILMIŞ BİLGİ - ÖNEMLİ!) ---"
+            else:
+                header = f"--- KAYNAK {i}: [{content_type}] Sayfa {page_num} ---"
+            
+            context_parts.append(f"{header}\n{doc['content']}")
+        
+        context_text = "\n\n".join(context_parts)
+        
+        # Limit context length to control token usage
+        if len(context_text) > MAX_CONTEXT_LENGTH:
+            context_text = context_text[:MAX_CONTEXT_LENGTH] + "\n\n[Content truncated to limit token usage...]"
         
         # Generate answer using Gemini
         if not self.model:
             return "⚠️ Gemini API yapılandırılmamış. Lütfen .env dosyasına GEMINI_API_KEY ekleyin."
         
         try:
-            prompt = f"""Sen bir kullanım kılavuzu asistanısın. Verilen belge içeriğine dayanarak kullanıcının sorusunu Türkçe olarak net ve anlaşılır bir şekilde cevapla.
+            prompt = f"""Sen bir teknik kullanım kılavuzu asistanısın. Verilen belge içeriğine dayanarak kullanıcının sorusunu Türkçe olarak net ve anlaşılır bir şekilde cevapla.
 
-Belgeler:
+ÖNEMLİ TALİMATLAR:
+- Belgeler arasında [GÖRSEL İÇERİĞİ] veya OCR ile çıkarılmış metinler var - bunlara DİKKAT ET!
+- Listeler, numaralandırmalar, parça isimleri, teknik detaylar varsa MUTLAKA belirt
+- Görsellerde ve tablolarda yer alan bilgiler ÇOK ÖNEMLİ - bunları atlamadan kullan
+- Soruya tam ve eksiksiz cevap ver
+
+BELGELER:
 {context_text}
 
-Kullanıcı Sorusu: {question}
+KULLANICI SORUSU: {question}
 
-Lütfen sadece verilen belgelerden yararlanarak soruyu cevapla. Eğer belgede cevap yoksa, bunu belirt."""
+CEVAP (sadece belgelerdeki bilgilere dayanarak, eksiksiz ve detaylı):"""
 
             response = self.model.generate_content(prompt)
             return response.text
@@ -140,7 +163,9 @@ Lütfen sadece verilen belgelerden yararlanarak soruyu cevapla. Eğer belgede ce
             'sources': [
                 {
                     'source': doc['metadata']['source'],
+                    'page_number': doc['metadata'].get('page_number', 'N/A'),
                     'chunk_id': doc['metadata']['chunk_id'],
+                    'content_type': doc['metadata'].get('content_type', 'text'),
                     'score': doc['score']
                 }
                 for doc in context_docs
