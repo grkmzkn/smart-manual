@@ -18,7 +18,9 @@ from config.config import (
     VECTORDB_DIR, 
     UPLOAD_DIR,
     TOP_K_RESULTS,
-    GEMINI_API_KEY
+    GEMINI_API_KEY,
+    LLM_TYPE,
+    LOCAL_LLM_MODEL
 )
 from src.pdf_processor import PDFProcessor
 from src.embeddings import EmbeddingModel
@@ -366,11 +368,20 @@ def main():
         # Settings
         st.markdown("### 🎛️ AI Ayarları")
         
-        if not GEMINI_API_KEY:
-            st.error("⚠️ Gemini API key ayarlanmamış!")
-            st.info("💡 .env dosyasına GEMINI_API_KEY ekleyerek yapay zeka destekli cevaplar alabilirsiniz.")
+        # Show LLM type and status
+        if LLM_TYPE == "gemini":
+            if not GEMINI_API_KEY:
+                st.error("⚠️ Gemini API key ayarlanmamış!")
+                st.info("💡 .env dosyasına GEMINI_API_KEY ekleyerek yapay zeka destekli cevaplar alabilirsiniz.")
+            else:
+                st.success("✅ Gemini 2.0 Flash - Cloud LLM Aktif")
+                st.caption("🌐 Veriler Google API'ye gönderiliyor")
+        elif LLM_TYPE == "local":
+            st.success(f"✅ Local LLM Aktif: {LOCAL_LLM_MODEL}")
+            st.caption("🔒 Veriler cihazınızda kalıyor - Tamamen gizli")
+            st.info("💡 Ollama kurulumu: [ollama.ai](https://ollama.ai)")
         else:
-            st.success("✅ Gemini 2.0 Flash - Aktif")
+            st.warning(f"⚠️ Bilinmeyen LLM tipi: {LLM_TYPE}")
         
         top_k = st.slider(
             "📊 Cevap için kullanılacak kaynak sayısı",
