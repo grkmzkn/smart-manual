@@ -34,10 +34,30 @@ CHUNK_OVERLAP = 200  # Overlap between chunks
 TOP_K_RESULTS = 3  # Number of relevant chunks to retrieve
 MAX_CONTEXT_LENGTH = 8000  # Maximum characters to send to LLM (~2000 tokens)
 
-# Google Gemini settings (required for Q&A)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+# LLM Configuration
+# Options: "gemini" (Google Gemini API - cloud-based, requires API key)
+#          "local" (Local LLM via Ollama - privacy-focused, no API costs)
+LLM_TYPE = "local"  # Change to "local" for offline LLM
+
+# Google Gemini settings (used when LLM_TYPE="gemini")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")  # Only secret info in .env
 GEMINI_MODEL = "gemini-2.5-flash"  # Latest Gemini 2.0 model - fast and efficient
 GEMINI_VISION_MODEL = "gemini-2.5-flash"  # Gemini 2.0 Vision for images
+
+# Local LLM settings (used when LLM_TYPE="local")
+# Requires Ollama installation: https://ollama.ai/
+# 
+# PERFORMANS ÖNERİLERİ (CPU'da hız için):
+#   - "llama3.2:1b"   → En hızlı (1B param, ~1GB, düşük kalite)
+#   - "phi3:mini"     → Hızlı + Kaliteli (3.8B param, ~2.3GB) ✅ ÖNERİLEN
+#   - "llama3.2:3b"   → Dengeli (3B param, ~2GB)
+#   - "qwen2.5:3b"    → İyi kalite (3B param, ~2GB, biraz yavaş)
+#   - "mistral:7b"    → Yüksek kalite (7B param, ~4GB, CPU'da çok yavaş)
+#
+# GPU varsa: Otomatik hızlanma sağlanır (nvidia-smi ile kontrol edin)
+# Kurulum: ollama pull phi3:mini
+LOCAL_LLM_BASE_URL = "http://localhost:11434"  # Ollama default URL
+LOCAL_LLM_MODEL = "qwen2.5:3b"  # Değiştirmek için: ollama pull <model-name>
 
 # Image processing settings
 # Options: "gemini" (Gemini Vision API - more accurate but uses API credits)
