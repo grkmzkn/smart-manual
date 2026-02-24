@@ -10,7 +10,14 @@ from pathlib import Path
 # Add project root to path
 sys.path.append(str(Path(__file__).parent))
 
-from config.config import VECTORDB_DIR, UPLOAD_DIR, TOP_K_RESULTS
+from config.config import (
+    VECTORDB_DIR, 
+    UPLOAD_DIR, 
+    TOP_K_RESULTS,
+    LLM_TYPE,
+    GEMINI_API_KEY,
+    LOCAL_LLM_MODEL
+)
 from src.pdf_processor import PDFProcessor
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
@@ -44,7 +51,23 @@ def initialize_system():
     pdf_processor = PDFProcessor()
     qa_engine = QAEngine(embedding_model, vector_store)
     
-    print("✅ System initialized successfully!\n")
+    # Display LLM configuration
+    print("\n🤖 LLM Configuration:")
+    if LLM_TYPE == "gemini":
+        if GEMINI_API_KEY:
+            print("   ☁️  Cloud LLM: Gemini 2.5 Flash (Active)")
+            print("   ⚠️  Data will be sent to Google API")
+        else:
+            print("   ❌ Cloud LLM: Gemini API key not configured")
+            print("   💡 Add GEMINI_API_KEY to .env file")
+    elif LLM_TYPE == "local":
+        print(f"   🔒 Local LLM: {LOCAL_LLM_MODEL} (Private & Free)")
+        print("   ✅ Data stays on your device")
+        print("   💡 Make sure Ollama is running: 'ollama serve'")
+    else:
+        print(f"   ⚠️  Unknown LLM type: {LLM_TYPE}")
+    
+    print("\n✅ System initialized successfully!\n")
     
     return pdf_processor, embedding_model, vector_store, qa_engine
 
@@ -149,6 +172,23 @@ def show_database_stats(vector_store):
     print(f"  Total document chunks: {vector_store.get_document_count()}")
     print(f"  Embedding dimension: {vector_store.dimension}")
     print(f"  Database location: {VECTORDB_DIR}")
+    
+    print("\n🤖 LLM CONFIGURATION:")
+    if LLM_TYPE == "gemini":
+        status = "✅ Active" if GEMINI_API_KEY else "❌ Not configured"
+        print(f"  Type: Cloud LLM (Gemini 2.0 Flash)")
+        print(f"  Status: {status}")
+        print(f"  Privacy: ⚠️  Data sent to Google API")
+        print(f"  Cost: Pay per API call")
+    elif LLM_TYPE == "local":
+        print(f"  Type: Local LLM (Ollama)")
+        print(f"  Model: {LOCAL_LLM_MODEL}")
+        print(f"  Privacy: 🔒 100% Private (data stays local)")
+        print(f"  Cost: ✅ Free")
+    
+    print("\n💡 To change LLM: Edit config/config.py")
+    print("   - LLM_TYPE = \"gemini\"  (cloud, high quality)")
+    print("   - LLM_TYPE = \"local\"   (private, free)")
     print()
 
 
