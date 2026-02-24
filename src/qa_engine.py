@@ -2,16 +2,26 @@
 """
 Question-Answering engine module for Smart Manual application.
 RAG-based answer generation using retrieved context and LLM.
+Supports both cloud-based (Gemini) and local (Ollama) LLMs.
 """
 
 from typing import List, Dict, Optional
 import google.generativeai as genai
+import requests
+import json
 
 # Import modules
 from pathlib import Path
 import sys
 sys.path.append(str(Path(__file__).parent.parent))
-from config.config import GEMINI_API_KEY, GEMINI_MODEL, MAX_CONTEXT_LENGTH
+from config.config import (
+    GEMINI_API_KEY, 
+    GEMINI_MODEL, 
+    MAX_CONTEXT_LENGTH,
+    LLM_TYPE,
+    LOCAL_LLM_BASE_URL,
+    LOCAL_LLM_MODEL
+)
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
 
@@ -23,7 +33,8 @@ class QAEngine:
         self, 
         embedding_model: EmbeddingModel, 
         vector_store: VectorStore,
-        api_key: Optional[str] = None
+        api_key: Optional[str] = None,
+        llm_type: Optional[str] = None
     ):
         """
         Initialize QA engine.
@@ -31,18 +42,42 @@ class QAEngine:
         Args:
             embedding_model: Embedding model instance
             vector_store: Vector store instance
-            api_key: Gemini API key (optional)
+            api_key: Gemini API key (optional, for cloud LLM)
+            llm_type: "gemini" or "local" (optional, defaults to config)
         """
         self.embedding_model = embedding_model
         self.vector_store = vector_store
-        self.api_key = api_key or GEMINI_API_KEY
+        self.llm_type = (llm_type or LLM_TYPE).lower()
         
-        # Configure Gemini if API key is available
-        if self.api_key:
-            genai.configure(api_key=self.api_key)
-            self.model = genai.GenerativeModel(GEMINI_MODEL)
+        # Initialize based on LLM type
+        if self.llm_type == "gemini":
+            self.api_key = api_key or GEMINI_API_KEY
+            if self.api_key:
+                genai.configure(api_key=self.api_key)
+                self.model = genai.GenerativeModel(GEMINI_MODEL)
+            else:
+                self.model = None
+        elif self.llm_type == "local":
+            self.local_url = LOCAL_LLM_BASE_URL
+            self.local_model = LOCAL_LLM_MODEL
+            self.model = None  # Not used for local LLM
+            # Check if Ollama is running
+            self._check_ollama_connection()
         else:
-            self.model = None
+            raise ValueError(f"Invalid LLM_TYPE: {self.llm_type}. Use 'gemini' or 'local'")
+    
+    def _check_ollama_connection(self):
+        """Check if Ollama server is accessible."""
+        try:
+            response = requests.get(f"{self.local_url}/api/tags", timeout=2)
+            if response.status_code == 200:
+                print(f"✅ Local LLM connected: {self.local_url}")
+            else:
+                print(f"⚠️ Ollama server responded with status {response.status_code}")
+        except requests.exceptions.RequestException as e:
+            print(f"⚠️ Warning: Cannot connect to Ollama at {self.local_url}")
+            print(f"   Make sure Ollama is running: 'ollama serve'")
+            print(f"   Error: {e}")
     
     def retrieve_context(self, question: str, k: int = 3) -> List[Dict]:
         """
@@ -111,12 +146,8 @@ class QAEngine:
         if len(context_text) > MAX_CONTEXT_LENGTH:
             context_text = context_text[:MAX_CONTEXT_LENGTH] + "\n\n[Content truncated to limit token usage...]"
         
-        # Generate answer using Gemini
-        if not self.model:
-            return "⚠️ Gemini API yapılandırılmamış. Lütfen .env dosyasına GEMINI_API_KEY ekleyin."
-        
-        try:
-            prompt = f"""Sen bir teknik kullanım kılavuzu asistanısın. Verilen belge içeriğine dayanarak kullanıcının sorusunu Türkçe olarak net ve anlaşılır bir şekilde cevapla.
+        # Prepare system prompt
+        system_prompt = """Sen bir teknik kullanım kılavuzu asistanısın. Verilen belge içeriğine dayanarak kullanıcının sorusunu Türkçe olarak net ve anlaşılır bir şekilde cevapla.
 
 ÖNEMLİ TALİMATLAR:
 - Belgeler arasında [GÖRSEL İÇERİĞİ] veya OCR ile çıkarılmış metinler var - bunlara DİKKAT ET!
@@ -129,7 +160,21 @@ FORMATLAMA KURALLARI:
 - Liste öğelerini madde işareti (-) veya numara ile göster
 - Her maddeyi yeni satıra yaz
 - Gereksiz satır sonları KULLANMA
-- Paragraflar arası boşluk için çift satır sonu kullan
+- Paragraflar arası boşluk için çift satır sonu kullan"""
+        
+        # Generate answer based on LLM type
+        if self.llm_type == "gemini":
+            return self._generate_with_gemini(system_prompt, context_text, question)
+        elif self.llm_type == "local":
+            return self._generate_with_local_llm(system_prompt, context_text, question)
+    
+    def _generate_with_gemini(self, system_prompt: str, context_text: str, question: str) -> str:
+        """Generate answer using Gemini API."""
+        if not self.model:
+            return "⚠️ Gemini API yapılandırılmamış. Lütfen .env dosyasına GEMINI_API_KEY ekleyin."
+        
+        try:
+            prompt = f"""{system_prompt}
 
 BELGELER:
 {context_text}
@@ -142,7 +187,70 @@ CEVAP (sadece belgelerdeki bilgilere dayanarak, düzenli formatta):"""
             return response.text
             
         except Exception as e:
-            return f"LLM hatası: {str(e)}\n\nBulunan ilgili metin:\n{context_text[:500]}..."
+            return f"Gemini LLM hatası: {str(e)}\n\nBulunan ilgili metin:\n{context_text[:500]}..."
+    
+    def _generate_with_local_llm(self, system_prompt: str, context_text: str, question: str) -> str:
+        """Generate answer using local LLM (Ollama)."""
+        try:
+            print("🔄 Local LLM düşünüyor... (Bu işlem CPU'da 1-3 dakika sürebilir)")
+            
+            # Prepare prompt for local LLM
+            prompt = f"""{system_prompt}
+
+BELGELER:
+{context_text}
+
+KULLANICI SORUSU: {question}
+
+CEVAP (sadece belgelerdeki bilgilere dayanarak, düzenli formatta):"""
+            
+            # Call Ollama API
+            url = f"{self.local_url}/api/generate"
+            payload = {
+                "model": self.local_model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {
+                    "temperature": 0.3,  # Lower temperature for more focused answers
+                    "num_predict": 512,  # Max tokens (512 for faster response)
+                    "num_ctx": 2048      # Context window
+                }
+            }
+            
+            # Increased timeout for slower CPUs (3 minutes)
+            response = requests.post(url, json=payload, timeout=180)
+            
+            if response.status_code == 200:
+                result = response.json()
+                answer = result.get("response", "Local LLM yanıt vermedi.")
+                print("✅ Local LLM cevap verdi!")
+                return answer
+            else:
+                return f"⚠️ Local LLM hatası (HTTP {response.status_code})\n\nBulunan ilgili metin:\n{context_text[:500]}..."
+                
+        except requests.exceptions.Timeout:
+            return f"""⚠️ Local LLM zaman aşımı! Model çok yavaş yanıt veriyor.
+
+💡 ÇÖZÜMLER:
+1. Daha hızlı model kullanın:
+   - ollama pull llama3.2:1b  (en hafif, en hızlı)
+   - ollama pull phi3:mini     (hızlı ve kaliteli)
+   
+2. GPU'nuz varsa Ollama otomatik kullanmalı. Kontrol edin:
+   - nvidia-smi  (NVIDIA GPU için)
+   
+3. Daha kısa sorular sorun veya TOP_K_RESULTS değerini düşürün
+
+4. Veya Cloud LLM (Gemini) kullanın:
+   - config/config.py → LLM_TYPE = "gemini"
+
+Bulunan ilgili metin:
+{context_text[:500]}..."""
+                
+        except requests.exceptions.ConnectionError:
+            return f"⚠️ Local LLM'e bağlanılamadı. Ollama çalışıyor mu?\n\nKullanım: 'ollama serve' komutunu çalıştırın.\nModel: 'ollama pull {self.local_model}'\n\nBulunan ilgili metin:\n{context_text[:500]}..."
+        except Exception as e:
+            return f"Local LLM hatası: {str(e)}\n\nBulunan ilgili metin:\n{context_text[:500]}..."
     
     def answer_question(
         self, 
