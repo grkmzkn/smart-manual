@@ -15,3 +15,6 @@ Pillow
 
 # Google Gemini
 google-generativeai
+
+# Local LLM (Ollama) - optional
+requests
