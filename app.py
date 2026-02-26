@@ -12,7 +12,7 @@ import sys
 # Add project root to path
 sys.path.append(str(Path(__file__).parent))
 
-from config.config import (
+from src.config import (
     PAGE_TITLE, 
     PAGE_ICON, 
     VECTORDB_DIR, 
@@ -26,7 +26,7 @@ from src.pdf_processor import PDFProcessor
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
 from src.qa_engine import QAEngine
-from utils.helpful_functions import format_file_size, get_timestamp
+from src.helpful_functions import format_file_size, get_timestamp
 
 
 # Page configuration
@@ -479,14 +479,15 @@ def main():
             label_visibility="collapsed"
         )
         
-        col1, col2, col3 = st.columns([3, 1, 1])
-        
-        with col1:
+        # Ask button - centered
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
             ask_button = st.button("&#x1F50D; Sor", type="primary", use_container_width=True)
         
-        with col2:
-            # Clear chat button
-            if st.session_state.chat_history:
+        # Clear button - centered below
+        if st.session_state.chat_history:
+            col4, col5, col6 = st.columns([1, 2, 1])
+            with col5:
                 if st.button("&#x1F504; Temizle", use_container_width=True):
                     st.session_state.chat_history = []
                     st.rerun()
