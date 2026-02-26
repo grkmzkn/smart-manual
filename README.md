@@ -1,380 +1,165 @@
-# 📚 Smart Manual - Intelligent PDF Q&A Assistant
+# 📚 Smart Manual - AI-Powered PDF Q&A System
 
-> **An advanced RAG-based AI system that transforms your PDF user manuals into an intelligent question-answering assistant, supporting both cloud and privacy-focused local LLM options.**
+Transform your PDF manuals into an intelligent question-answering assistant using RAG (Retrieval-Augmented Generation) technology.
 
-## 🎯 Project Overview
+## 🎯 Purpose
 
-Smart Manual is a **Production-Ready Retrieval-Augmented Generation (RAG) system** designed to extract knowledge from technical documentation, user manuals, and handbooks. Built with flexibility in mind, it offers both cloud-based AI (Google Gemini) and privacy-focused local LLM (Ollama) options, making it suitable for both public and confidential documents.
+Smart Manual enables natural language queries on PDF documentation. Instead of manually searching through pages, simply ask questions and get instant answers with source references.
 
-### Why Smart Manual?
-
-Traditional PDF viewers offer only basic text search with exact keyword matching. Smart Manual revolutionizes document interaction by:
-
-- **Understanding Context**: Uses semantic search to find relevant information even when your question uses different words than the manual
-- **Multimodal Intelligence**: Extracts information from text, tables, diagrams, and images within PDFs
-- **Privacy First**: Offers completely offline processing with local LLMs - your sensitive manuals never leave your machine
-- **Cost Effective**: Choose between free local models or affordable cloud APIs based on your needs
-- **Multi-language Support**: Optimized for Turkish and English with multilingual embedding models
-
-### Use Cases
-
-- 🏭 **Industrial Equipment Manuals**: Query maintenance procedures, troubleshooting steps, and technical specifications
-- 🏥 **Medical Device Documentation**: Fast access to operation instructions and safety guidelines
-- 🚗 **Vehicle Service Manuals**: Find repair procedures and part diagrams instantly
-- 📱 **Consumer Electronics Guides**: Get setup help and feature explanations
-- 🏢 **Corporate Policy Handbooks**: Navigate complex organizational documents with natural language
+**Use Cases:**
+- Technical manuals and user guides
+- Industrial equipment documentation
+- Vehicle service handbooks
+- Medical device instructions
+- Corporate policy documents
 
 ---
 
-## ✨ Key Features
+## ⚙️ Technology Stack
 
-### 🤖 Dual LLM Architecture
+### LLM Options (Choose One)
 
-**Cloud LLM (Google Gemini 2.5 Flash)**
-- ☁️ State-of-the-art performance
-- ⚡ Fast response times (1-3 seconds)
-- 🎨 Advanced vision capabilities for images
-- 💰 Pay-per-use pricing ($0.075/1M input tokens)
+**1. Google Gemini (Cloud)**
+- High-quality responses
+- Fast (1-3 seconds)
+- Requires API key
+- Best for: General use
 
-**Local LLM (Ollama)**
-- 🔒 100% privacy - data never leaves your machine
-- 💾 Runs completely offline
-- 🆓 Zero API costs
-- 🎛️ Model selection: from 1B to 7B+ parameters
-- 🖥️ Optimized for CPU execution (GPU auto-detected)
+**2. Ollama (Local)**
+- 100% private and offline
+- Free (no API costs)
+- Slower on CPU
+- Best for: Sensitive documents
 
-### 📄 Advanced Multimodal PDF Processing
+### PDF Processing Methods
 
-**Text Extraction**
-- 📝 Page-by-page extraction with `pdfplumber`
-- 🧩 Smart chunking with configurable overlap (1000 chars, 200 overlap)
-- 📊 Automatic table detection and structured extraction
-- 🔢 Page number tracking for precise source attribution
+**Text Extraction:**
+- `pdfplumber`: Extracts text and tables page-by-page
+- Smart chunking: 1000 chars with 200 char overlap
 
-**Image Intelligence**
-- 🎨 **Gemini Vision Mode**: Leverages Google's multimodal AI to understand diagrams, charts, and technical illustrations
-- 🔍 **OCR Mode**: Tesseract-based text extraction from images with advanced preprocessing:
-  - Grayscale conversion for better contrast
-  - Image upscaling to 1200px for clarity
-  - Contrast enhancement (2.0x) and sharpness boost (1.5x)
-  - Smart line merging to fix fragmented sentences
-  - Supports Turkish + English (configurable languages)
-- 📄 **Page Context Enrichment**: Automatically adds surrounding text (300 chars) to image chunks for better context
+**Image Processing (3 Options):**
+1. **OCR (Tesseract)**: Free, offline text extraction from images
+2. **Gemini Vision**: AI-powered image understanding (requires API)
+3. **None**: Skip images (text-only, fastest)
 
-**Processing Modes**
-- `ocr`: Free Tesseract OCR (best for text-heavy diagrams)
-- `gemini`: AI Vision API (best for complex visual content)
-- `none`: Skip images (fastest, text-only)
+### Vector Search
 
-### 🔍 Intelligent Retrieval System
-
-**Vector Database (FAISS)**
-- 🚀 Lightning-fast similarity search with L2 distance metric
-- 💾 Persistent storage with `.faiss` index and `.pkl` metadata
-- 🔄 Incremental updates without full reprocessing
-- 📈 Scalable to thousands of document chunks
-
-**Semantic Embeddings**
-- 🌍 Multilingual model: `paraphrase-multilingual-MiniLM-L12-v2`
-- 📐 384-dimensional dense vectors
-- 🇹🇷 Optimized for Turkish language understanding
-- 🎯 Top-K retrieval (default: 3 most relevant chunks)
-
-**Context Management**
-- 📏 Smart token limiting (8000 chars max to LLM)
-- 📚 Source attribution with chunk IDs and page numbers
-- 📊 Similarity scores for transparency (lower = better match)
-
-### 🎨 Modern User Interfaces
-
-**Streamlit Web UI**
-- 🌑 Beautiful dark theme with gradient design
-- 💬 Chat-style conversation interface
-- 📤 Drag-and-drop PDF upload
-- 📊 Real-time database statistics
-- 🔧 Configurable retrieval settings (Top-K, context length)
-- ✨ HTML-safe emoji rendering
-- 📱 Responsive layout
-
-**Command-Line Interface (CLI)**
-- ⚡ Fast terminal-based interaction
-- 📋 Interactive menu system
-- 📊 Database statistics and health checks
-- 🗑️ Database management (clear/rebuild)
-- 🔍 Direct question input
-
----
-
-## 🏗️ Architecture & Technology Stack
-
-### Core Technologies
-
-| Component | Technology | Purpose |
-|-----------|-----------|---------|
-| **LLM (Cloud)** | Google Gemini 2.5 Flash | Answer generation with vision |
-| **LLM (Local)** | Ollama (qwen2.5:3b, phi3:mini, etc.) | Privacy-focused offline AI |
-| **Embeddings** | Sentence Transformers (MiniLM-L12-v2) | Multilingual semantic vectors |
-| **Vector DB** | FAISS IndexFlatL2 | Fast similarity search |
-| **PDF Parsing** | pdfplumber | Text & table extraction |
-| **Image Extraction** | PyMuPDF (fitz) | Extract images from PDFs |
-| **OCR Engine** | Tesseract 5.0+ | Text recognition from images |
-| **Image Processing** | Pillow (PIL) | Preprocessing & enhancement |
-| **Web UI** | Streamlit 1.32.0+ | Interactive web interface |
-| **Environment** | Python 3.8+ | Core runtime |
-
-### Project Structure
-
-```
-smart-manual/
-├── config/
-│   └── config.py              # Centralized configuration
-├── src/
-│   ├── pdf_processor.py       # PDF text/table extraction
-│   ├── image_processor.py     # OCR & Gemini Vision processing
-│   ├── embeddings.py          # Sentence Transformer wrapper
-│   ├── vector_store.py        # FAISS vector database
-│   └── qa_engine.py           # RAG pipeline & LLM integration
-├── utils/
-│   └── helpful_functions.py   # Text cleaning, validation
-├── data/
-│   ├── uploaded/              # User-uploaded PDFs
-│   └── vectordb/              # Persisted FAISS index
-│       ├── index.faiss        # Vector index (embeddings)
-│       └── documents.pkl      # Document chunks & metadata
-├── app.py                     # Streamlit web interface
-├── main.py                    # CLI interface
-├── requirements.txt           # Python dependencies
-├── .env.example               # Environment template
-├── README.md                  # This file
-└── SETUP_GUIDE.md             # Detailed installation guide
-
-```
-
-### RAG Pipeline Flow
-
-```
-┌─────────────────┐
-│  PDF Document   │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  PDF Processor (pdfplumber)         │
-│  • Extract text by pages            │
-│  • Detect and extract tables        │
-│  • Extract images (PyMuPDF)         │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Image Processor (Optional)         │
-│  • OCR: Tesseract + Preprocessing   │
-│  • Vision: Gemini multimodal API    │
-│  • Add page context (300 chars)     │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Chunking & Embedding               │
-│  • Split into 1000-char chunks      │
-│  • 200-char overlap for continuity  │
-│  • Generate 384-dim embeddings      │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  FAISS Vector Store                 │
-│  • Store embeddings + metadata      │
-│  • Save to disk (index.faiss)       │
-└─────────────────────────────────────┘
-
-         [QUERY TIME]
-
-┌─────────────────┐
-│  User Question  │
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Embed Question → Search FAISS      │
-│  • Return Top-K similar chunks      │
-│  • Include page numbers & scores    │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  Context Assembly                   │
-│  • Concatenate retrieved chunks     │
-│  • Limit to 8000 chars              │
-│  • Format with source attribution   │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────────────────────────┐
-│  LLM Generation                     │
-│  • Gemini: Cloud API                │
-│  • Ollama: Local HTTP API           │
-│  • Timeout: 180s (local), instant   │
-└────────┬────────────────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Final Answer   │
-└─────────────────┘
-```
+- **Embeddings**: Sentence Transformers (multilingual, 384-dim)
+- **Database**: FAISS L2 similarity search
+- **Retrieval**: Top-K most relevant chunks
 
 ---
 
 ## 🚀 Quick Start
 
-### Prerequisites
-
-- **Python 3.8+** (3.10+ recommended)
-- **Tesseract OCR** (optional, for image text extraction)
-  - Windows: [Download installer](https://github.com/UB-Mannheim/tesseract/wiki)
-  - Linux: `sudo apt install tesseract-ocr tesseract-ocr-tur`
-  - macOS: `brew install tesseract tesseract-lang`
-- **Ollama** (optional, for local LLM)
-  - [Download from ollama.ai](https://ollama.ai/)
-
 ### Installation
 
-1. **Clone the repository**
-   ```powershell
-   git clone https://github.com/yourusername/smart-manual.git
-   cd smart-manual
-   ```
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-2. **Install Python dependencies**
-   ```powershell
-   pip install -r requirements.txt
-   ```
+# Copy environment template
+cp .env.example .env
+```
 
-3. **Configure environment**
-   ```powershell
-   # Create .env file from template
-   cp .env.example .env
-   ```
+### Configuration
 
-4. **Choose your LLM mode**
+Edit `src/config.py`:
 
-   **Option A: Cloud LLM (Gemini)**
-   ```bash
-   # Edit .env file
-   GEMINI_API_KEY=your-api-key-here  # Get from https://makersuite.google.com/app/apikey
+```python
+# Choose LLM type
+LLM_TYPE = "local"  # or "gemini"
 
-   # Edit config/config.py
-   LLM_TYPE = "gemini"
-   ```
+# For local LLM (requires Ollama)
+LOCAL_LLM_MODEL = "qwen2.5:3b"  # or phi3:mini, llama3.2:1b
 
-   **Option B: Local LLM (Ollama)**
-   ```powershell
-   # Install Ollama from https://ollama.ai/
-   
-   # Download a model (choose based on your hardware)
-   ollama pull phi3:mini        # Recommended for CPU (3.8B, ~2.3GB)
-   ollama pull llama3.2:1b      # Fastest (1B, ~1GB)
-   ollama pull qwen2.5:3b       # Balanced (3B, ~2GB)
-   
-   # Edit config/config.py
-   LLM_TYPE = "local"
-   LOCAL_LLM_MODEL = "phi3:mini"
-   ```
+# Image processing mode
+IMAGE_PROCESSING_MODE = "ocr"  # or "gemini" or "none"
+```
 
-### Usage
+### For Cloud LLM (Gemini)
 
-**Web Interface (Recommended)**
-```powershell
+Add to `.env`:
+```
+GEMINI_API_KEY=your-key-here
+```
+Get key: https://makersuite.google.com/app/apikey
+
+### For Local LLM (Ollama)
+
+```bash
+# Install Ollama from https://ollama.ai/
+# Download a model
+ollama pull qwen2.5:3b
+```
+
+**Model Options:**
+- `llama3.2:1b` - Fastest (~1GB)
+- `phi3:mini` - Recommended (~2.3GB)
+- `qwen2.5:3b` - Good quality (~2GB)
+
+---
+
+## 💻 Usage
+
+### Web Interface
+
+```bash
 streamlit run app.py
 ```
-- Navigate to `http://localhost:8501`
-- Upload your PDF in the sidebar
-- Wait for processing (first time: 30-60s, cached: 3-5s)
-- Start asking questions!
+Navigate to `http://localhost:8501`
 
-**Command Line Interface**
-```powershell
+### Command Line
+
+```bash
 python main.py
 ```
-- Choose from interactive menu
-- Option 1: Upload and process PDF
-- Option 2: Ask questions
-- Option 3: View database statistics
-- Option 4: Clear database
+
+**Menu Options:**
+1. Process PDF
+2. Ask questions
+3. View statistics
+4. Clear database
 
 ---
 
-## ⚙️ Configuration Guide
+## 📁 Project Structure
 
-### Core Settings (`config/config.py`)
-
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `LLM_TYPE` | `"local"` | LLM mode: `"gemini"` or `"local"` |
-| `LOCAL_LLM_MODEL` | `"qwen2.5:3b"` | Ollama model name |
-| `IMAGE_PROCESSING_MODE` | `"ocr"` | Image mode: `"ocr"`, `"gemini"`, or `"none"` |
-| `CHUNK_SIZE` | `1000` | Characters per document chunk |
-| `CHUNK_OVERLAP` | `200` | Overlap between consecutive chunks |
-| `TOP_K_RESULTS` | `3` | Number of chunks to retrieve |
-| `MAX_CONTEXT_LENGTH` | `8000` | Max characters sent to LLM |
-| `EMBEDDING_MODEL_NAME` | `paraphrase-multilingual-MiniLM-L12-v2` | Sentence Transformer model |
-
-### LLM Model Recommendations
-
-**For CPU (Ollama Local Models)**
-
-| Model | Parameters | Size | Speed | Quality | Best For |
-|-------|-----------|------|-------|---------|----------|
-| `llama3.2:1b` | 1B | ~1GB | ⚡⚡⚡ | ⭐⭐ | Fastest possible |
-| `phi3:mini` | 3.8B | ~2.3GB | ⚡⚡ | ⭐⭐⭐⭐ | **Recommended** |
-| `llama3.2:3b` | 3B | ~2GB | ⚡⚡ | ⭐⭐⭐ | Balanced |
-| `qwen2.5:3b` | 3B | ~2GB | ⚡ | ⭐⭐⭐⭐ | Good quality |
-| `mistral:7b` | 7B | ~4GB | 🐌 (GPU only) | ⭐⭐⭐⭐⭐ | Best quality |
-
-**Installation:**
-```bash
-ollama pull phi3:mini
+```
+smart-manual/
+├── src/
+│   ├── config.py              # Settings
+│   ├── pdf_processor.py       # PDF extraction
+│   ├── image_processor.py     # OCR/Vision
+│   ├── embeddings.py          # Vector embeddings
+│   ├── vector_store.py        # FAISS database
+│   ├── qa_engine.py           # RAG pipeline
+│   └── helpful_functions.py   # Utilities
+├── app.py                     # Web UI
+├── main.py                    # CLI
+└── requirements.txt
 ```
 
-### Environment Variables (`.env`)
+---
 
-Only **secrets** go here:
-```bash
-# Google Gemini API Key (only needed for cloud LLM)
-GEMINI_API_KEY=your-actual-api-key-here
-```
+## 🔧 Configuration Options
 
-Get your key: [https://makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey)
+| Setting | Default | Options |
+|---------|---------|---------|
+| LLM Type | `local` | `gemini`, `local` |
+| Local Model | `qwen2.5:3b` | `phi3:mini`, `llama3.2:1b`, etc. |
+| Image Mode | `ocr` | `gemini`, `ocr`, `none` |
+| Chunk Size | 1000 | Any integer |
+| Top-K Results | 3 | 1-10 recommended |
 
 ---
 
-## 📊 Performance Optimization
+## 🙏 Credits
 
-### Speed Optimization
-
-**1. For Faster Processing:**
-- Use `IMAGE_PROCESSING_MODE = "none"` if PDFs are text-only
-- Reduce `TOP_K_RESULTS` to 2 for simpler queries
-- Use smaller embedding model (requires code changes)
-
-**2. For Better Quality:**
-- Use `LLM_TYPE = "gemini"` for best answers
-- Increase `TOP_K_RESULTS` to 5 for complex questions
-- Use `IMAGE_PROCESSING_MODE = "gemini"` for technical diagrams
-
-**3. Local LLM Performance:**
-- **GPU**: Ollama auto-detects NVIDIA GPUs (check with `nvidia-smi`)
-- **CPU**: Use `phi3:mini` or `llama3.2:1b` for decent speed
-- **Timeout**: 180 seconds default (configurable in `qa_engine.py`)
-
-### Resource Usage
-
-| Task | CPU | RAM | Time (Approx) |
-|------|-----|-----|---------------|
-| First PDF processing (50 pages) | Medium | 2-4GB | 30-60s |
-| Cached PDF loading | Low | 1-2GB | 3-5s |
-| Question answering (Gemini) | Low | 1-2GB | 1-3s |
-| Question answering (Local, phi3:mini) | High | 3-5GB | 20-120s |
-| Embedding generation | Medium | 2-3GB | Per page: 0.5-1s |
-
----
+Built with:
+- Google Gemini / Ollama (LLM)
+- FAISS (Vector search)
+- Sentence Transformers (Embeddings)
+- pdfplumber (PDF parsing)
+- Tesseract (OCR)
+- Streamlit (Web UI)
