@@ -1,8 +1,3 @@
-"""
-Vector database module for Smart Manual application.
-FAISS-based vector storage and similarity search operations.
-"""
-
 import os
 import pickle
 from typing import List, Dict, Tuple
@@ -10,10 +5,7 @@ import numpy as np
 import faiss
 
 # Import configuration
-from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parent.parent))
-from config.config import EMBEDDING_DIMENSION
+from src.config import EMBEDDING_DIMENSION
 
 
 class VectorStore:
