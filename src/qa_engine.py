@@ -1,20 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Question-Answering engine module for Smart Manual application.
-RAG-based answer generation using retrieved context and LLM.
-Supports both cloud-based (Gemini) and local (Ollama) LLMs.
-"""
-
 from typing import List, Dict, Optional
 import google.generativeai as genai
 import requests
 import json
 
 # Import modules
-from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parent.parent))
-from config.config import (
+from src.config import (
     GEMINI_API_KEY, 
     GEMINI_MODEL, 
     MAX_CONTEXT_LENGTH,
@@ -242,7 +232,7 @@ CEVAP (sadece belgelerdeki bilgilere dayanarak, düzenli formatta):"""
 3. Daha kısa sorular sorun veya TOP_K_RESULTS değerini düşürün
 
 4. Veya Cloud LLM (Gemini) kullanın:
-   - config/config.py → LLM_TYPE = "gemini"
+   - src/config.py → LLM_TYPE = "gemini"
 
 Bulunan ilgili metin:
 {context_text[:500]}..."""
