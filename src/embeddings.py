@@ -1,17 +1,9 @@
-"""
-Text embedding module for Smart Manual application.
-Converts text into vector embeddings using sentence transformers.
-"""
-
 from typing import List
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
 # Import configuration
-from pathlib import Path
-import sys
-sys.path.append(str(Path(__file__).parent.parent))
-from config.config import EMBEDDING_MODEL_NAME, EMBEDDING_DIMENSION
+from src.config import EMBEDDING_MODEL_NAME, EMBEDDING_DIMENSION
 
 
 class EmbeddingModel:
