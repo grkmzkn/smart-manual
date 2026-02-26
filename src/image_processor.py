@@ -1,23 +1,14 @@
-"""
-Image processing module for Smart Manual application.
-Handles image extraction from PDFs and text extraction from images.
-Supports both Gemini Vision API and OCR (Tesseract).
-"""
-
 import io
 import base64
 from typing import List, Dict, Optional
-from pathlib import Path
-import sys
 
 # Third-party imports
 from PIL import Image as PILImage
 import fitz  # PyMuPDF for image extraction
 import google.generativeai as genai
 
-# Add project root to path
-sys.path.append(str(Path(__file__).parent.parent))
-from config.config import (
+# Import configuration
+from src.config import (
     GEMINI_API_KEY, 
     GEMINI_VISION_MODEL,
     IMAGE_PROCESSING_MODE,
@@ -233,35 +224,35 @@ Türkçe olarak yanıt ver."""
             
             cleaned_lines.append(line)
         
-        # Merge fragmented lines (satır kaymalarını düzelt)
+        # Merge fragmented lines (fix line breaks)
         merged_lines = []
         i = 0
         while i < len(cleaned_lines):
             current_line = cleaned_lines[i]
             
-            # Liste öğesi mi kontrol et (numaralı veya madde işaretli)
+            # Check if list item (numbered or bulleted)
             is_list_item = re.match(r'^\s*[\d\u2022\u25CF\u25E6\-\*]\s*[\.)]?\s+', current_line)
             
-            # Başlık mı kontrol et (kısa ve büyük harfle başlayan)
+            # Check if heading (short and starts with uppercase)
             is_heading = (len(current_line) < 50 and 
                          current_line[0].isupper() and 
                          not current_line.endswith(('.', ':', ';', ',', ')', '!')))
             
-            # Cümle sonu noktalama işaretleri
+            # Sentence-ending punctuation marks
             ends_with_punctuation = current_line.endswith(('.', '!', '?', ':', ';', ')'))
             
-            # Bir sonraki satırı birleştirmeyi dene
+            # Try merging with next line
             while i + 1 < len(cleaned_lines):
                 next_line = cleaned_lines[i + 1]
                 
-                # Sonraki satır liste öğesi mi?
+                # Is next line a list item?
                 next_is_list_item = re.match(r'^\s*[\d\u2022\u25CF\u25E6\-\*]\s*[\.)]?\s+', next_line)
                 
-                # Mevcut satır noktalama ile bitiyorsa veya liste öğesi ise birleştirme
+                # Don't merge if current line ends with punctuation or is list item
                 if ends_with_punctuation or is_list_item or next_is_list_item or is_heading:
                     break
                 
-                # Küçük harfle başlıyorsa veya cümle devamıysa birleştir
+                # Merge if starts with lowercase or sentence continuation
                 if (next_line and 
                     (next_line[0].islower() or 
                      current_line[-1] in (',', 've', 'veya', 'ile', 'için'))):
