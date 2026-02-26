@@ -1,19 +1,10 @@
-"""
-PDF processing module for Smart Manual application.
-Handles PDF text extraction, table extraction, and text chunking operations.
-Uses pdfplumber for better text and table extraction.
-"""
-
 import os
 from typing import List, Dict
 import pdfplumber
-from pathlib import Path
 
 # Import configuration
-import sys
-sys.path.append(str(Path(__file__).parent.parent))
-from config.config import CHUNK_SIZE, CHUNK_OVERLAP, EXTRACT_TABLES, PROCESS_IMAGES
-from utils.helpful_functions import clean_text
+from src.config import CHUNK_SIZE, CHUNK_OVERLAP, EXTRACT_TABLES, PROCESS_IMAGES
+from src.helpful_functions import clean_text
 from src.image_processor import ImageProcessor
 
 
