@@ -1,16 +1,10 @@
-# -*- coding: utf-8 -*-
-"""
-Command-line interface for Smart Manual application.
-Terminal-based interface for testing PDF Q&A functionality.
-"""
-
 import sys
 from pathlib import Path
 
 # Add project root to path
 sys.path.append(str(Path(__file__).parent))
 
-from config.config import (
+from src.config import (
     VECTORDB_DIR, 
     UPLOAD_DIR, 
     TOP_K_RESULTS,
@@ -22,7 +16,7 @@ from src.pdf_processor import PDFProcessor
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
 from src.qa_engine import QAEngine
-from utils.helpful_functions import validate_pdf_file, format_file_size
+from src.helpful_functions import validate_pdf_file, format_file_size
 
 
 def initialize_system():
@@ -38,7 +32,7 @@ def initialize_system():
     print("📦 Loading embedding model...")
     embedding_model = EmbeddingModel()
     
-    print("🗄️  Initializing vector store...")
+    print("🗄️ Initializing vector store...")
     vector_store = VectorStore()
     
     # Try to load existing database
@@ -55,17 +49,13 @@ def initialize_system():
     print("\n🤖 LLM Configuration:")
     if LLM_TYPE == "gemini":
         if GEMINI_API_KEY:
-            print("   ☁️  Cloud LLM: Gemini 2.5 Flash (Active)")
-            print("   ⚠️  Data will be sent to Google API")
+            print("☁️ LLM: Gemini 2.5 Flash (Active)")
         else:
-            print("   ❌ Cloud LLM: Gemini API key not configured")
-            print("   💡 Add GEMINI_API_KEY to .env file")
+            print("❌ LLM: Gemini API key not configured")
     elif LLM_TYPE == "local":
-        print(f"   🔒 Local LLM: {LOCAL_LLM_MODEL} (Private & Free)")
-        print("   ✅ Data stays on your device")
-        print("   💡 Make sure Ollama is running: 'ollama serve'")
+        print(f"🔒 Local LLM: {LOCAL_LLM_MODEL} (Private & Free)")
     else:
-        print(f"   ⚠️  Unknown LLM type: {LLM_TYPE}")
+        print(f"⚠️ Unknown LLM type: {LLM_TYPE}")
     
     print("\n✅ System initialized successfully!\n")
     
@@ -176,20 +166,10 @@ def show_database_stats(vector_store):
     print("\n🤖 LLM CONFIGURATION:")
     if LLM_TYPE == "gemini":
         status = "✅ Active" if GEMINI_API_KEY else "❌ Not configured"
-        print(f"  Type: Cloud LLM (Gemini 2.0 Flash)")
-        print(f"  Status: {status}")
-        print(f"  Privacy: ⚠️  Data sent to Google API")
-        print(f"  Cost: Pay per API call")
+        print(f"  Type: LLM (Gemini 2.5 Flash)")
     elif LLM_TYPE == "local":
         print(f"  Type: Local LLM (Ollama)")
         print(f"  Model: {LOCAL_LLM_MODEL}")
-        print(f"  Privacy: 🔒 100% Private (data stays local)")
-        print(f"  Cost: ✅ Free")
-    
-    print("\n💡 To change LLM: Edit config/config.py")
-    print("   - LLM_TYPE = \"gemini\"  (cloud, high quality)")
-    print("   - LLM_TYPE = \"local\"   (private, free)")
-    print()
 
 
 def clear_database(vector_store):
@@ -273,7 +253,7 @@ def main():
         choice = main_menu()
         
         if choice == '1':
-            # Process PDF
+            # Process PDF   ""
             pdf_path = input("\nEnter PDF file path: ").strip()
             process_pdf_file(pdf_path, pdf_processor, embedding_model, vector_store)
             
@@ -315,5 +295,3 @@ if __name__ == "__main__":
         print("\n\n👋 Interrupted by user. Goodbye!\n")
     except Exception as e:
         print(f"\n❌ Error: {str(e)}\n")
-        import traceback
-        traceback.print_exc()
