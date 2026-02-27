@@ -28,6 +28,8 @@ CHUNK_OVERLAP = 200  # Overlap between chunks
 # Vector search settings
 TOP_K_RESULTS = 3  # Number of relevant chunks to retrieve
 MAX_CONTEXT_LENGTH = 8000  # Maximum characters to send to LLM (~2000 tokens)
+SIMILARITY_THRESHOLD = 15.0  # Maximum distance score for relevant results (lower = more similar)
+                             # Results with score > threshold are considered irrelevant
 
 # LLM Configuration
 LLM_TYPE = "local"
