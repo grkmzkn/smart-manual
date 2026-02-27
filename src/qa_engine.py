@@ -10,7 +10,8 @@ from src.config import (
     MAX_CONTEXT_LENGTH,
     LLM_TYPE,
     LOCAL_LLM_BASE_URL,
-    LOCAL_LLM_MODEL
+    LOCAL_LLM_MODEL,
+    SIMILARITY_THRESHOLD
 )
 from src.embeddings import EmbeddingModel
 from src.vector_store import VectorStore
@@ -78,7 +79,7 @@ class QAEngine:
             k: Number of documents to retrieve
             
         Returns:
-            List of relevant documents with metadata and scores
+            List of relevant documents with metadata and scores (filtered by threshold)
         """
         # Convert question to embedding
         question_embedding = self.embedding_model.embed_text(question)
@@ -86,7 +87,7 @@ class QAEngine:
         # Search for similar documents
         results = self.vector_store.search(question_embedding, k=k)
         
-        # Format results
+        # Filter by similarity threshold - remove irrelevant results
         context_docs = [
             {
                 'content': content,
@@ -94,6 +95,7 @@ class QAEngine:
                 'metadata': metadata
             }
             for content, score, metadata in results
+            if score <= SIMILARITY_THRESHOLD  # Only include results below threshold
         ]
         
         return context_docs
@@ -114,7 +116,7 @@ class QAEngine:
             Generated answer string
         """
         if not context_docs:
-            return "Üzgünüm, yüklenen belgelerde bu soruyla ilgili bilgi bulamadım."
+            return "Üzgünüm, yüklenen belgelerde bu soruyla ilgili bir bilgi bulamadım. Sorunuz belgelerin kapsamı dışında olabilir."
         
         # Combine context from documents with enhanced formatting
         context_parts = []
