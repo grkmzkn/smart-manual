@@ -1,3 +1,5 @@
+<img width="1905" height="1030" alt="image" src="https://github.com/user-attachments/assets/32e9837c-b157-4abc-b200-822d16b104f3" />
+
 # 📚 Smart Manual - AI-Powered PDF Q&A System
 
 Transform your PDF manuals into an intelligent question-answering assistant using RAG (Retrieval-Augmented Generation) technology.
